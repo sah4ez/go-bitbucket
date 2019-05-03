@@ -2,8 +2,10 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -71,7 +73,31 @@ func main() {
 		panic(err.Error())
 	}
 	fmt.Println(string(b))
+	files := map[string]int{}
+	comments := map[string][]string{}
+
 	for _, comment := range pager.Values {
+		if _, ok := files[comment.Inline.Path]; !ok {
+			f, err := os.Open(comment.Inline.Path)
+			if err != nil {
+				fmt.Println("err", err)
+				continue
+			}
+			lines, err := lineCounter(f)
+			if err != nil {
+				fmt.Println("err", err)
+				continue
+			}
+			files[comment.Inline.Path] = lines
+			comments[comment.Inline.Path] = make([]string, lines)
+		}
+
+		c := "(" + comment.User.Username + ")" +
+			comment.CreatedOn.Format("2006-01-02/15:04:05") +
+			":" + fmt.Sprintf("%d", comment.Id) +
+			"  " + comment.Content.Raw
+		comments[comment.Inline.Path][comment.Inline.To] += " >> " + c
+
 		fmt.Println("raw", comment.Content.Raw)
 		if comment.Parent != nil {
 			fmt.Println("id", comment.Parent.Id)
@@ -79,5 +105,51 @@ func main() {
 		fmt.Println("username", comment.User.Username)
 		fmt.Println("to", comment.Inline.To)
 		fmt.Println("from", comment.Inline.From)
+		fmt.Println("path", comment.Inline.Path)
+		fmt.Println()
 	}
+
+	for name, comment := range comments {
+		data := []byte(strings.Join(comment, "\n"))
+		parts := strings.Split(name, "/")
+		err := ioutil.WriteFile("/tmp/"+parts[len(parts)-1]+".comments", data, 0644)
+		if err != nil {
+			fmt.Println("err", err)
+			continue
+		}
+	}
+}
+
+func lineCounter(r io.Reader) (int, error) {
+
+	var readSize int
+	var err error
+	var count int
+
+	buf := make([]byte, 1024)
+
+	for {
+		readSize, err = r.Read(buf)
+		if err != nil {
+			break
+		}
+
+		var buffPosition int
+		for {
+			i := bytes.IndexByte(buf[buffPosition:], '\n')
+			if i == -1 || readSize == buffPosition {
+				break
+			}
+			buffPosition += i + 1
+			count++
+		}
+	}
+	if readSize > 0 && count == 0 || count > 0 {
+		count++
+	}
+	if err == io.EOF {
+		return count, nil
+	}
+
+	return count, err
 }

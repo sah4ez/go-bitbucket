@@ -74,7 +74,8 @@ func main() {
 	}
 	fmt.Println(string(b))
 	files := map[string]int{}
-	comments := map[string][]string{}
+	commentsTo := map[string][]string{}
+	commentsFrom := map[string][]string{}
 
 	for _, comment := range pager.Values {
 		if _, ok := files[comment.Inline.Path]; !ok {
@@ -89,14 +90,25 @@ func main() {
 				continue
 			}
 			files[comment.Inline.Path] = lines
-			comments[comment.Inline.Path] = make([]string, lines)
+			commentsTo[comment.Inline.Path] = make([]string, lines)
+			commentsFrom[comment.Inline.Path] = make([]string, lines)
 		}
 
-		c := "(" + comment.User.Username + ")" +
-			comment.CreatedOn.Format("2006-01-02/15:04:05") +
-			":" + fmt.Sprintf("%d", comment.Id) +
-			"  " + comment.Content.Raw
-		comments[comment.Inline.Path][comment.Inline.To] += " >> " + c
+		if comment.Inline.To > 0 {
+			c := "(" + comment.User.Username + ")" +
+				comment.CreatedOn.Format("2006-01-02/15:04") +
+				":" + fmt.Sprintf("%d", comment.Id) +
+				"  " + comment.Content.Raw
+			commentsTo[comment.Inline.Path][comment.Inline.To-1] += " << " + c
+		}
+
+		if comment.Inline.From > 0 {
+			c := "(" + comment.User.Username + ")" +
+				comment.CreatedOn.Format("2006-01-02/15:04") +
+				":" + fmt.Sprintf("%d", comment.Id) +
+				"  " + comment.Content.Raw
+			commentsFrom[comment.Inline.Path][comment.Inline.From-1] += " >> " + c
+		}
 
 		fmt.Println("raw", comment.Content.Raw)
 		if comment.Parent != nil {
@@ -109,10 +121,20 @@ func main() {
 		fmt.Println()
 	}
 
-	for name, comment := range comments {
+	for name, comment := range commentsTo {
 		data := []byte(strings.Join(comment, "\n"))
 		parts := strings.Split(name, "/")
-		err := ioutil.WriteFile("/tmp/"+parts[len(parts)-1]+".comments", data, 0644)
+		err := ioutil.WriteFile("/tmp/to_"+parts[len(parts)-1]+".comments", data, 0644)
+		if err != nil {
+			fmt.Println("err", err)
+			continue
+		}
+	}
+
+	for name, comment := range commentsFrom {
+		data := []byte(strings.Join(comment, "\n"))
+		parts := strings.Split(name, "/")
+		err := ioutil.WriteFile("/tmp/from_"+parts[len(parts)-1]+".comments", data, 0644)
 		if err != nil {
 			fmt.Println("err", err)
 			continue

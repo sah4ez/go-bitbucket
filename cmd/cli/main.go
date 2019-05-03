@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	sw "github.com/sah4ez/go-bitbucket"
 )
@@ -37,7 +38,7 @@ func main() {
 		}
 		for _, pr := range prs.Values {
 			if os.Args[2] == pr.Source.Branch.Name {
-				cmd := exec.Command("git", "difftool", "--tool=vimdiff2", "origin/"+pr.Source.Branch.Name, "origin/"+pr.Destination.Branch.Name)
+				cmd := exec.Command("git", "difftool", "--tool=vimdiff2", "origin/"+pr.Destination.Branch.Name, "origin/"+pr.Source.Branch.Name)
 				cmd.Stdout = os.Stdout
 				cmd.Stdin = os.Stdin
 				r := bufio.NewReader(os.Stdout)
@@ -97,19 +98,19 @@ func main() {
 		}
 
 		if comment.Inline.To > 0 {
-			c := "(" + comment.User.Username + ")" +
-				comment.CreatedOn.Format("2006-01-02/15:04") +
-				":" + fmt.Sprintf("%d", comment.Id) +
-				"  " + comment.Content.Raw
-			commentsTo[comment.Inline.Path][comment.Inline.To-1] += " << " + c
+			c := "[" + fmt.Sprintf("%d", comment.Id) + "]" +
+				"< (" + comment.User.Username + ") < " +
+				comment.CreatedOn.Format(time.RFC3339) +
+				" < " + comment.Content.Raw + " <<< "
+			commentsTo[comment.Inline.Path][comment.Inline.To-1] += c
 		}
 
 		if comment.Inline.From > 0 {
-			c := "(" + comment.User.Username + ")" +
-				comment.CreatedOn.Format("2006-01-02/15:04") +
-				":" + fmt.Sprintf("%d", comment.Id) +
-				"  " + comment.Content.Raw
-			commentsFrom[comment.Inline.Path][comment.Inline.From-1] += " >> " + c
+			c := "[" + fmt.Sprintf("%d", comment.Id) + "]" +
+				"(" + comment.User.Username + ")" +
+				comment.CreatedOn.Format(time.RFC3339) +
+				"> " + comment.Content.Raw + " >>> "
+			commentsFrom[comment.Inline.Path][comment.Inline.From-1] += c
 		}
 
 		fmt.Println("raw", comment.Content.Raw)

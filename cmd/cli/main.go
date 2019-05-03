@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	sw "github.com/sah4ez/go-bitbucket"
@@ -25,6 +26,7 @@ func main() {
 
 	repo := os.Getenv("REPO")
 	config := sw.NewConfiguration()
+	prID, _ := strconv.ParseInt(os.Getenv("PR"), 10, 32)
 
 	client := sw.NewAPIClient(config)
 
@@ -63,7 +65,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	pager, resp, err := client.PullrequestsApi.RepositoriesUsernameRepoSlugPullrequestsPullRequestIdCommentsGet(auth, "ronte", repo, 62)
+	pager, resp, err := client.PullrequestsApi.RepositoriesUsernameRepoSlugPullrequestsPullRequestIdCommentsGet(auth, "ronte", repo, int32(prID))
 
 	if err != nil {
 		panic(err.Error())

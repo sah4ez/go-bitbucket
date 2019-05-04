@@ -59,9 +59,9 @@ func main() {
 			Name: "debug, d",
 		},
 		cli.StringFlag{
-			Name:   "prefix, p",
+			Name:   "tmpdir, td",
 			Value:  "/tmp",
-			EnvVar: "PREFIX",
+			EnvVar: "TMPDIR",
 		},
 	}
 	cli.VersionPrinter = func(c *cli.Context) {

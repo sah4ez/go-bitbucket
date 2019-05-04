@@ -59,19 +59,19 @@ func Comments(client *sw.APIClient) cli.Command {
 
 			}
 
-			saveComments(c.GlobalBool("debug"), c.GlobalString("prefix"), "to", commentsTo)
-			saveComments(c.GlobalBool("debug"), c.GlobalString("prefix"), "from", commentsFrom)
+			saveComments(c.GlobalBool("debug"), c.GlobalString("tmpdir"), "to", commentsTo)
+			saveComments(c.GlobalBool("debug"), c.GlobalString("tmpdir"), "from", commentsFrom)
 
 			return nil
 		},
 	}
 }
 
-func saveComments(debug bool, prefix, dest string, comments map[string][]string) error {
+func saveComments(debug bool, tmpdir, dest string, comments map[string][]string) error {
 	for name, comment := range comments {
 		data := []byte(strings.Join(comment, "\n"))
 		parts := strings.Split(name, "/")
-		fileName := prefix + "/" + dest + "_" + parts[len(parts)-1] + ".comments"
+		fileName := tmpdir + "/" + dest + "_" + parts[len(parts)-1] + ".comments"
 		if debug {
 			fmt.Println("save comments to: ", fileName)
 		}

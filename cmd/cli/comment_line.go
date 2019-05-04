@@ -42,11 +42,15 @@ func CommentLine(client *sw.APIClient) cli.Command {
 				return err
 			}
 
-			for _, file := range files {
-				fmt.Println(file)
+			if c.GlobalBool("debug") {
+				for _, file := range files {
+					fmt.Println(file)
+				}
+				fmt.Printf("[%s] (%s) %s %s", line, author, path, comment)
 			}
 
-			fmt.Printf("[%s] (%s) %s %s", line, author, path, comment)
+			// TODO(sah4ez) 04-05-2019: need add call API method
+
 			return nil
 		},
 	}

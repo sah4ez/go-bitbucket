@@ -22,37 +22,50 @@ func Review(client *sw.APIClient) cli.Command {
 				return err
 			}
 
-			if c.Args().Get(0) == "" {
-				return fmt.Errorf("missing repo branch which would compare with master")
+			if LeftBranch == "" || RightBranch == "" {
+				return fmt.Errorf("missing LEFT_BRANCH or RIGHT_BRANCH env varibale for compare. LEFT_BRANCH default master")
 			}
 
 			for _, pr := range prs.Values {
-				if c.Args().Get(0) == pr.Source.Branch.Name {
-					cmd := exec.Command("git", "difftool", "--tool=vimdiff2", "origin/"+pr.Destination.Branch.Name, "origin/"+pr.Source.Branch.Name)
-					cmd.Stdout = os.Stdout
-					cmd.Stdin = os.Stdin
-					r := bufio.NewReader(os.Stdout)
-
-					err = cmd.Start()
+				if RightBranch == pr.Source.Branch.Name && LeftBranch == pr.Destination.Branch.Name {
+					files, err := LoadFiles()
 					if err != nil {
-						log.Fatal(err)
+						return err
 					}
-					fmt.Println("id", pr.Id)
-
-					reader := bufio.NewReader(os.Stdin)
-
-					line, _, err := r.ReadLine()
-					for err != nil {
-						fmt.Println(line)
-						text, _ := reader.ReadString('\n')
-						os.Stdin.Write([]byte(text + "\n"))
-						line, _, err = r.ReadLine()
+					for _, file := range files {
+						fmt.Println("id", pr.Id)
+						Diff(file)
 					}
-
-					cmd.Wait()
 				}
 			}
 			return nil
 		},
 	}
+}
+
+func Diff(file string) {
+	os.Setenv(EnvCurrentFilenameDiff, file)
+	defer os.Unsetenv(EnvCurrentFilenameDiff)
+
+	cmd := exec.Command("git", "difftool", "--tool=vimdiff2", "origin/"+LeftBranch, "origin/"+RightBranch, file)
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+	r := bufio.NewReader(os.Stdout)
+
+	err := cmd.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+
+	line, _, err := r.ReadLine()
+	for err != nil {
+		fmt.Println(line)
+		text, _ := reader.ReadString('\r')
+		os.Stdin.Write([]byte(text + "\n"))
+		line, _, err = r.ReadLine()
+	}
+
+	cmd.Wait()
 }
